@@ -32,14 +32,14 @@ if "seguimiento_kilometraje" not in st.session_state:
         {"Económico": "A-TC-K-14", "KM Actual": "189,400 km", "Último Servicio": "180,000 km", "Sig. Servicio": "195,000 km", "Estatus": "OK", "Condición": "En Rango"},
     ]
 
-# --- POOL GLOBAL DE MANTENIMIENTOS (INTEGRA EL LOOK DE UBER / RAPPI) ---
+# --- POOL GLOBAL DE MANTENIMIENTOS ---
 if "mantenimientos" not in st.session_state:
     st.session_state.mantenimientos = [
         {
             "id": 1, 
             "cliente": "INDHECA / CARECO", 
             "equipo": "KENWORTH T680 (Eco: A-TC-K-35)", 
-            "estado": "Disponible", # Estatus inicial para el pool Uber
+            "estado": "Disponible", 
             "tecnico": "Ninguno",
             "descripcion": "Servicio preventivo completo. Cambio de aceite, filtros de aire y combustible.",
             "monto": "$2,800.00 MXN",
@@ -147,6 +147,7 @@ if rol == "Cliente":
             detalles = st.text_area("Observaciones o síntomas reportados por el operador:")
             
             if st.button("Enviar Orden de Servicio", type="primary", key="btn_solicitar"):
+                # SOLUCIÓN: Agregamos llave 'semaforo' por defecto para evitar el KeyError
                 st.session_state.mantenimientos.append({
                     "id": len(st.session_state.mantenimientos) + 1,
                     "cliente": "INDHECA / CARECO",
@@ -185,7 +186,6 @@ if rol == "Cliente":
 elif rol == "Técnico":
     st.header("Panel de Operaciones: Carlos Gómez (Técnico)")
     
-    # Las 2 nuevas pestañas que me solicitaste
     tab_disponibles, tab_mis_ordenes = st.tabs(["📌 Mantenimientos Disponibles", "📋 Mis Órdenes de Trabajo"])
     
     # ---- PESTAÑA 1: INTERFAZ ESTILO UBER/RAPPI ----
@@ -199,7 +199,6 @@ elif rol == "Técnico":
             st.info("No hay servicios disponibles en el pool en este momento. ¡Buen trabajo!")
         else:
             for m in pool_disponible:
-                # Tarjeta contenedora con look premium e informativo
                 with st.container(border=True):
                     col_detalles, col_ganancia = st.columns([3, 1])
                     
@@ -211,9 +210,8 @@ elif rol == "Técnico":
                     
                     with col_ganancia:
                         st.metric(label="Pago por Servicio", value=m["monto"])
-                        st.write("") # Espaciador
+                        st.write("")
                         
-                    # Botones de Acción de la tarjeta
                     col_b1, col_b2, col_blank = st.columns([1, 1, 2])
                     with col_b1:
                         if st.button("Aceptar Trabajo ⚡", key=f"accept_{m['id']}", type="primary"):
@@ -223,7 +221,7 @@ elif rol == "Técnico":
                             st.rerun()
                     with col_b2:
                         if st.button("Ver Detalles 🔍", key=f"details_{m['id']}"):
-                            st.toast(f"Detalles ampliado de la orden {m['id']}: Cliente {m['cliente']}. Requiere herramienta estándar.", icon="ℹ️")
+                            st.toast(f"Detalles ampliado de la orden {m['id']}: Cliente {m['cliente']}.", icon="ℹ️")
 
     # ---- PESTAÑA 2: ÓRDENES PROPIAS Y SEMAFORIZACIÓN ----
     with tab_mis_ordenes:
@@ -246,22 +244,22 @@ elif rol == "Técnico":
                             st.markdown(f"✅ *Finalizado el:* {m['fecha_fin']}")
                     
                     with c_semaforo:
-                        # Semaforización visual basada en el estatus
                         if m["estado"] == "Completado":
                             st.success("✅ COMPLETADO")
                         else:
-                            if "Retrasado" in m["semaforo"]:
-                                st.error(m["semaforo"])
-                            elif "Próximo" in m["semaforo"]:
-                                st.warning(m["semaforo"])
+                            # Uso seguro de .get() para evitar caídas imprevistas
+                            m_semaforo = m.get("semaforo", "🟢 En tiempo")
+                            if "Retrasado" in m_semaforo:
+                                st.error(m_semaforo)
+                            elif "Próximo" in m_semaforo:
+                                st.warning(m_semaforo)
                             else:
-                                st.info(m["semaforo"])
+                                st.info(m_semaforo)
                     
-                    # Si está aceptado, el técnico puede ejecutar los pasos y terminarlo
                     if m["estado"] == "Aceptado":
                         st.markdown("---")
                         st.markdown("**📋 Check-list de Ejecución:**")
-                        p1 = st.checkbox("Inspección visual y Check-list inicial.", key=f"p1_{m['id']}")
+                        p1 = st.checkbox("Inspección visual general y Check-list de fluidos inicial.", key=f"p1_{m['id']}")
                         p2 = st.checkbox("Limpieza de filtros y fluidos.", key=f"p2_{m['id']}")
                         p3 = st.checkbox("Prueba de presión y arranque.", key=f"p3_{m['id']}")
                         
