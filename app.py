@@ -77,8 +77,8 @@ if "mantenimientos" not in st.session_state:
         },
     ]
 
-# --- ENCABEZADO ---
-st.markdown("<h1 style='text-align: center;'>🏎️ Portal de Servicios</h1>", unsafe_html=True)
+# --- ENCABEZADO MODIFICADO (100% SEGURO SIN HTML) ---
+st.title("🏎️ Portal de Servicios")
 
 rol = st.selectbox("Selecciona tu perfil para la demo:", ["Cliente", "Técnico", "Administrador"])
 
@@ -248,7 +248,7 @@ elif rol == "Técnico":
                             if "Retrasado" in m_semaforo:
                                 st.error(m_semaforo)
                             elif "Próximo" in m_semaforo:
-                                st.warning(m_semaforo)
+                               _style = st.warning(m_semaforo)
                             else:
                                 st.info(m_semaforo)
                     
@@ -282,7 +282,6 @@ elif rol == "Administrador":
         
     st.subheader("📊 Monitoreo Global de Servicios")
     
-    # SOLUCIÓN DEFINITIVA: Convertimos a DataFrame seguro rellenando vacíos si existen registros viejos
     df_mantenimientos = pd.DataFrame(st.session_state.mantenimientos)
     if not df_mantenimientos.empty:
         if "semaforo" not in df_mantenimientos.columns:
