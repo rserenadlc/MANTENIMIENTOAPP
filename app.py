@@ -150,7 +150,6 @@ elif rol == "Administrador":
         
     with col2:
         with st.container(border=True):
-            with st.container(border=True):
             st.markdown("### 🔧 Técnicos Asignados")
             st.write("• Carlos Gómez (En ruta)\n\n• Juan Pérez (Disponible)")
         
