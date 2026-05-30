@@ -22,7 +22,7 @@ if "equipos_reales" not in st.session_state:
         {"eco": "a-tc-k-40", "marca": "KENWORTH", "modelo": "t680", "ano": 2025, "status": "activo"},
     ]
 
-# --- TABLA DE SEGUIMIENTO SIMULADA (MÉTRICAS DE KILOMETRAJE Y MOTOR) ---
+# --- TABLA DE SEGUIMIENTO SIMULADA ---
 if "seguimiento_kilometraje" not in st.session_state:
     st.session_state.seguimiento_kilometraje = [
         {"Económico": "A-TC-K-02", "KM Actual": "320,500 km", "Último Servicio": "310,000 km", "Sig. Servicio": "325,000 km", "Estatus": "OK", "Condición": "En Rango"},
@@ -32,10 +32,29 @@ if "seguimiento_kilometraje" not in st.session_state:
         {"Económico": "A-TC-K-14", "KM Actual": "189,400 km", "Último Servicio": "180,000 km", "Sig. Servicio": "195,000 km", "Estatus": "OK", "Condición": "En Rango"},
     ]
 
+# --- HISTORIAL COMPLETO CON FECHAS Y DESCRIPCIONES ---
 if "mantenimientos" not in st.session_state:
     st.session_state.mantenimientos = [
-        {"id": 1, "cliente": "INDHECA / CARECO", "equipo": "KENWORTH T680 (Eco: A-TC-K-35)", "estado": "Pendiente", "tecnico": "Ninguno"},
-        {"id": 2, "cliente": "INDHECA / CARECO", "equipo": "MACK anthem 48 (Eco: A-TC-M-32)", "estado": "Completado", "tecnico": "Carlos Gómez"},
+        {
+            "id": 1, 
+            "cliente": "INDHECA / CARECO", 
+            "equipo": "KENWORTH T680 (Eco: A-TC-K-35)", 
+            "estado": "Pendiente", 
+            "tecnico": "Ninguno",
+            "descripcion": "Servicio preventivo por cumplimiento de kilometraje (45,000 km). Cambio de aceite de motor, filtro de aceite y filtro de combustible.",
+            "fecha_prog": "01/06/2026",
+            "fecha_fin": "-"
+        },
+        {
+            "id": 2, 
+            "cliente": "INDHECA / CARECO", 
+            "equipo": "MACK anthem 48 (Eco: A-TC-M-32)", 
+            "estado": "Completado", 
+            "tecnico": "Carlos Gómez",
+            "descripcion": "Inspección inicial de asentamiento y revisión de niveles de fluidos hidráulicos. Todo en orden.",
+            "fecha_prog": "20/05/2026",
+            "fecha_fin": "22/05/2026"
+        },
     ]
 
 # --- ENCABEZADO ---
@@ -49,7 +68,6 @@ st.divider()
 if rol == "Cliente":
     st.header("Bienvenido, Cliente (INDHECA / CARECO)")
     
-    # Separación exacta en las 3 pestañas solicitadas
     tab1, tab2, tab3 = st.tabs(["📋 Mis Equipos Activos", "📊 Seguimiento de Servicios", "⏳ Historial de Mantenimientos"])
     
     with tab1:
@@ -59,18 +77,13 @@ if rol == "Cliente":
         
     with tab2:
         st.subheader("Monitoreo Dinámico de Desgaste y Kilometraje")
-        st.caption("Esta tabla identifica automáticamente qué equipos requieren mantenimiento preventivo basándose en sus alertas de kilometraje.")
-        
-        # Tabla de control de kilometraje simulada
         with st.container(border=True):
             st.dataframe(st.session_state.seguimiento_kilometraje, use_container_width=True, hide_index=True)
             
         st.markdown("---")
         
-        # Recuadro inferior exclusivo para solicitar el mantenimiento
         with st.container(border=True):
             st.subheader("🛠️ Solicitar Mantenimiento Preventivo / Correctivo")
-            st.info("Utilice este apartado prioritariamente para las unidades marcadas con estatus de ⚠️ REVISIÓN o 🚨 ALERTA por kilometraje de servicio cumplido.")
             
             lista_opciones_equipos = [f"{e['marca']} {e['modelo']} (Eco: {e['eco']})" for e in st.session_state.equipos_reales]
             equipo_sel = st.selectbox("Seleccione la unidad que ingresará a taller:", lista_opciones_equipos)
@@ -84,20 +97,44 @@ if rol == "Cliente":
             detalles = st.text_area("Observaciones o síntomas reportados por el operador:")
             
             if st.button("Enviar Orden de Servicio", type="primary"):
+                # Insertamos la fecha de hoy simulada para la programación
                 st.session_state.mantenimientos.append({
                     "id": len(st.session_state.mantenimientos) + 1,
                     "cliente": "INDHECA / CARECO",
                     "equipo": equipo_sel,
                     "estado": "Pendiente",
-                    "tecnico": "Ninguno"
+                    "tecnico": "Ninguno",
+                    "descripcion": f"[{tipo_maint}] Km reportado: {km_reportado}. Observaciones: {detalles}",
+                    "fecha_prog": "30/05/2026", # Fecha actual simulada
+                    "fecha_fin": "-"
                 })
-                st.success(f"¡Solicitud de servicio creada con éxito para la unidad {equipo_sel}! El departamento técnico ha sido notificado.")
+                st.success(f"¡Solicitud de servicio creada con éxito!")
 
     with tab3:
-        st.subheader("Historial General y Estatus de Órdenes")
+        st.subheader("Historial y Estatus Detallado de Órdenes")
+        
+        # Desplegamos cada mantenimiento de forma estética en su propia tarjeta
         for m in st.session_state.mantenimientos:
-            status_color = "🔴" if m["estado"] == "Pendiente" else "🟢"
-            st.write(f"{status_color} **{m['equipo']}** - Estado: *{m['estado']}* (Técnico: {m['tecnico']})")
+            with st.container(border=True):
+                col_info, col_status = st.columns([3, 1])
+                
+                with col_info:
+                    st.markdown(f"### 🚛 {m['equipo']}")
+                    st.markdown(f"**Descripción:** {m['descripcion']}")
+                    st.markdown(f"👤 **Técnico Asignado:** {m['tecnico']}")
+                    
+                    # Lógica de fechas según el estado
+                    if m["estado"] == "Completado":
+                        st.markdown(f"📅 **Fecha de Finalización:** {m['fecha_fin']}")
+                    else:
+                        st.markdown(f"📅 **Fecha Programada:** {m['fecha_prog']}")
+                
+                with col_status:
+                    st.write("") # Espaciador visual
+                    if m["estado"] == "Pendiente":
+                        st.error("🔴 PENDIENTE")
+                    else:
+                        st.success("🟢 COMPLETADO")
 
 # ================= ROL: TÉCNICO =================
 elif rol == "Técnico":
@@ -119,7 +156,7 @@ elif rol == "Técnico":
             with st.container(border=True):
                 st.markdown("### ⚠️ Orden Activa")
                 st.write(f"Trabajando en: **{m_seleccionado['equipo']}**")
-                st.write(f"Cliente: **{m_seleccionado['cliente']}**")
+                st.write(f"Descripción inicial: *{m_seleccionado['descripcion']}*")
             
             st.subheader("📋 Lista de pasos obligatorios:")
             paso1 = st.checkbox("1. Inspección visual general y Check-list de fluidos inicial.")
@@ -132,10 +169,11 @@ elif rol == "Técnico":
                         if m["id"] == m_seleccionado["id"]:
                             m["estado"] = "Completado"
                             m["tecnico"] = "Carlos Gómez"
-                    st.success("¡Mantenimiento registrado con éxito en el historial!")
+                            m["fecha_fin"] = "30/05/2026" # Sella la fecha de hoy al finalizar
+                    st.success("¡Mantenimiento registrado con éxito!")
                     st.rerun()
             else:
-                st.info("Por favor, marca todos los pasos obligatorios para poder finalizar la orden de servicio.")
+                st.info("Por favor, marca todos los pasos obligatorios para poder finalizar la orden.")
 
 # ================= ROL: ADMINISTRADOR =================
 elif rol == "Administrador":
