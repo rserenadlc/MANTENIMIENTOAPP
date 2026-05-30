@@ -32,33 +32,52 @@ if "seguimiento_kilometraje" not in st.session_state:
         {"Económico": "A-TC-K-14", "KM Actual": "189,400 km", "Último Servicio": "180,000 km", "Sig. Servicio": "195,000 km", "Estatus": "OK", "Condición": "En Rango"},
     ]
 
-# --- HISTORIAL COMPLETO CON FECHAS Y DESCRIPCIONES ---
+# --- POOL GLOBAL DE MANTENIMIENTOS (INTEGRA EL LOOK DE UBER / RAPPI) ---
 if "mantenimientos" not in st.session_state:
     st.session_state.mantenimientos = [
         {
             "id": 1, 
             "cliente": "INDHECA / CARECO", 
             "equipo": "KENWORTH T680 (Eco: A-TC-K-35)", 
-            "estado": "Pendiente", 
+            "estado": "Disponible", # Estatus inicial para el pool Uber
             "tecnico": "Ninguno",
-            "descripcion": "Servicio preventivo por cumplimiento de kilometraje (45,000 km). Cambio de aceite de motor, filtro de aceite y filtro de combustible.",
-            "fecha_prog": "01/06/2026",
-            "fecha_fin": "-"
+            "descripcion": "Servicio preventivo completo. Cambio de aceite, filtros de aire y combustible.",
+            "monto": "$2,800.00 MXN",
+            "fecha_prog": "02/06/2026",
+            "fecha_fin": "-",
+            "municipio": "Veracruz",
+            "semaforo": "🟡 Próximo"
         },
         {
             "id": 2, 
+            "cliente": "CONSTRUCTORA DELTA", 
+            "equipo": "KENWORTH T800 (Eco: TC-17)", 
+            "estado": "Disponible", 
+            "tecnico": "Ninguno",
+            "descripcion": "Corrección de fuga de aire en válvula de frenos y revisión de presión.",
+            "monto": "$1,500.00 MXN",
+            "fecha_prog": "29/05/2026",
+            "fecha_fin": "-",
+            "municipio": "Boca del Río",
+            "semaforo": "🔴 Retrasado"
+        },
+        {
+            "id": 3, 
             "cliente": "INDHECA / CARECO", 
             "equipo": "MACK anthem 48 (Eco: A-TC-M-32)", 
             "estado": "Completado", 
             "tecnico": "Carlos Gómez",
-            "descripcion": "Inspección inicial de asentamiento y revisión de niveles de fluidos hidráulicos. Todo en orden.",
-            "fecha_prog": "20/05/2026",
-            "fecha_fin": "22/05/2026"
+            "descripcion": "Inspección inicial de niveles e inspección de fluidos. Todo en orden.",
+            "monto": "$1,200.00 MXN",
+            "fecha_prog": "25/05/2026",
+            "fecha_fin": "26/05/2026",
+            "municipio": "Veracruz",
+            "semaforo": "✅ Finalizado"
         },
     ]
 
 # --- ENCABEZADO ---
-st.title("🏎️ Portal de Servicios")
+st.markdown("<h1 style='text-align: center;'>🏎️ Portal de Servicios</h1>", unsafe_html=True)
 
 rol = st.selectbox("Selecciona tu perfil para la demo:", ["Cliente", "Técnico", "Administrador"])
 
@@ -75,36 +94,27 @@ if rol == "Cliente":
         with st.container(border=True):
             st.dataframe(st.session_state.equipos_reales, use_container_width=True, hide_index=True)
         
-        # --- NUEVA SECCIÓN: BOTONES DE GESTIÓN DE UNIDADES (SIMULADOS) ---
         col_btn1, col_btn2 = st.columns(2)
-        
         with col_btn1:
             with st.expander("➕ Agregar Nueva Unidad", expanded=False):
                 new_eco = st.text_input("Número Económico:", placeholder="Ej. A-TC-K-45")
-                new_marca = st.selectbox("Marca:", ["KENWORTH", "MACK", "CATERPILLAR", "CUMMINS", "OTRO"])
+                new_marca = st.selectbox("Marca:", ["KENWORTH", "MACK", "CATERPILLAR", "OTRO"])
                 new_modelo = st.text_input("Modelo:", placeholder="Ej. T680")
                 new_ano = st.number_input("Año Modelo:", min_value=2000, max_value=2027, value=2026)
                 
                 if st.button("Guardar Unidad 💾", type="primary", key="btn_add"):
                     if new_eco:
-                        # Añade dinámicamente el equipo a la lista en memoria
                         st.session_state.equipos_reales.append({
                             "eco": new_eco, "marca": new_marca, "modelo": new_modelo, "ano": int(new_ano), "status": "activo"
                         })
-                        st.success(f"¡Unidad {new_eco} agregada correctamente a la flota!")
+                        st.success(f"¡Unidad {new_eco} agregada correctamente!")
                         st.rerun()
-                    else:
-                        st.error("Por favor ingresa el Número Económico.")
 
         with col_btn2:
             with st.expander("📝 Editar Unidad Existente", expanded=False):
-                # Selector para elegir cuál de los 10 equipos se va a editar
                 lista_ecos = [e["eco"] for e in st.session_state.equipos_reales]
                 eco_a_editar = st.selectbox("Selecciona el Económico a modificar:", lista_ecos)
-                
-                # Buscar datos actuales para poblar los campos simulados
                 datos_actuales = next((item for item in st.session_state.equipos_reales if item["eco"] == eco_a_editar), None)
-                
                 edit_modelo = st.text_input("Modificar Modelo:", value=datos_actuales["modelo"] if datos_actuales else "")
                 edit_status = st.selectbox("Modificar Estatus:", ["activo", "en taller", "baja"], index=0)
                 
@@ -113,7 +123,7 @@ if rol == "Cliente":
                         if e["eco"] == eco_a_editar:
                             e["modelo"] = edit_modelo
                             e["status"] = edit_status
-                    st.success(f"¡Unidad {eco_a_editar} actualizada con éxito para la demo!")
+                    st.success(f"¡Unidad {eco_a_editar} actualizada con éxito!")
                     st.rerun()
         
     with tab2:
@@ -125,7 +135,6 @@ if rol == "Cliente":
         
         with st.container(border=True):
             st.subheader("🛠️ Solicitar Mantenimiento Preventivo / Correctivo")
-            
             lista_opciones_equipos = [f"{e['marca']} {e['modelo']} (Eco: {e['eco']})" for e in st.session_state.equipos_reales]
             equipo_sel = st.selectbox("Seleccione la unidad que ingresará a taller:", lista_opciones_equipos)
             
@@ -133,7 +142,7 @@ if rol == "Cliente":
             with col_km:
                 km_reportado = st.text_input("Kilometraje actual de la unidad:", placeholder="Ej. 45,200 km")
             with col_tipo:
-                tipo_maint = st.selectbox("Tipo de Servicio:", ["Preventivo (Cambio de filtros/fluidos)", "Correctivo (Falla reportada)", "Inspección General"])
+                tipo_maint = st.selectbox("Tipo de Servicio:", ["Preventivo (Cambio de filtros/fluidos)", "Correctivo (Falla reportada)"])
                 
             detalles = st.text_area("Observaciones o síntomas reportados por el operador:")
             
@@ -142,13 +151,16 @@ if rol == "Cliente":
                     "id": len(st.session_state.mantenimientos) + 1,
                     "cliente": "INDHECA / CARECO",
                     "equipo": equipo_sel,
-                    "estado": "Pendiente",
+                    "estado": "Disponible",
                     "tecnico": "Ninguno",
-                    "descripcion": f"[{tipo_maint}] Km reportado: {km_reportado}. Observaciones: {detalles}",
-                    "fecha_prog": "30/05/2026",
-                    "fecha_fin": "-"
+                    "descripcion": f"[{tipo_maint}] Km: {km_reportado}. Obs: {detalles}",
+                    "monto": "$2,500.00 MXN",
+                    "fecha_prog": "05/06/2026",
+                    "fecha_fin": "-",
+                    "municipio": "Veracruz",
+                    "semaforo": "🟢 En tiempo"
                 })
-                st.success(f"¡Solicitud de servicio creada con éxito!")
+                st.success(f"¡Solicitud de servicio enviada al pool de técnicos!")
 
     with tab3:
         st.subheader("Historial y Estatus Detallado de Órdenes")
@@ -159,54 +171,107 @@ if rol == "Cliente":
                     st.markdown(f"### 🚛 {m['equipo']}")
                     st.markdown(f"**Descripción:** {m['descripcion']}")
                     st.markdown(f"👤 **Técnico Asignado:** {m['tecnico']}")
-                    if m["estado"] == "Completado":
-                        st.markdown(f"📅 **Fecha de Finalización:** {m['fecha_fin']}")
-                    else:
-                        st.markdown(f"📅 **Fecha Programada:** {m['fecha_prog']}")
+                    st.markdown(f"📅 **Programación/Cierre:** {m['fecha_fin'] if m['estado'] == 'Completado' else m['fecha_prog']}")
                 with col_status:
                     st.write("")
-                    if m["estado"] == "Pendiente":
-                        st.error("🔴 PENDIENTE")
-                    else:
+                    if m["estado"] == "Completado":
                         st.success("🟢 COMPLETADO")
+                    elif m["estado"] == "Aceptado":
+                        st.warning("🟡 EN PROCESO")
+                    else:
+                        st.info("🔵 EN POOL")
 
 # ================= ROL: TÉCNICO =================
 elif rol == "Técnico":
-    st.header("Panel del Técnico: Carlos Gómez")
-    pendientes = [m for m in st.session_state.mantenimientos if m["estado"] == "Pendiente"]
+    st.header("Panel de Operaciones: Carlos Gómez (Técnico)")
     
-    if not pendientes:
-        st.success("¡No tienes mantenimientos pendientes por hoy!")
-    else:
-        st.subheader("Órdenes Disponibles")
-        m_seleccionado = st.selectbox(
-            "Selecciona una orden para trabajar:", 
-            options=pendientes, 
-            format_func=lambda x: f"ID {x['id']} - {x['cliente']} ({x['equipo']})"
-        )
+    # Las 2 nuevas pestañas que me solicitaste
+    tab_disponibles, tab_mis_ordenes = st.tabs(["📌 Mantenimientos Disponibles", "📋 Mis Órdenes de Trabajo"])
+    
+    # ---- PESTAÑA 1: INTERFAZ ESTILO UBER/RAPPI ----
+    with tab_disponibles:
+        st.subheader("⚡ Solicitudes en tu Zona (Boca del Río / Veracruz)")
+        st.caption("Toma un servicio de la lista para asignártelo de inmediato.")
         
-        if m_seleccionado:
-            with st.container(border=True):
-                st.markdown("### ⚠️ Orden Activa")
-                st.write(f"Trabajando en: **{m_seleccionado['equipo']}**")
-                st.write(f"Descripción inicial: *{m_seleccionado['descripcion']}*")
-            
-            st.subheader("📋 Lista de pasos obligatorios:")
-            paso1 = st.checkbox("1. Inspección visual general y Check-list de fluidos inicial.")
-            paso2 = st.checkbox("2. Limpieza o cambio de filtros según bitácora de la maquinaria.")
-            paso3 = st.checkbox("3. Pruebas de presión del sistema y arranque de control.")
-            
-            if paso1 and paso2 and paso3:
-                if st.button("Marcar como Completado ✅", type="primary", key="btn_tech_complete"):
-                    for m in st.session_state.mantenimientos:
-                        if m["id"] == m_seleccionado["id"]:
-                            m["estado"] = "Completado"
+        pool_disponible = [m for m in st.session_state.mantenimientos if m["estado"] == "Disponible"]
+        
+        if not pool_disponible:
+            st.info("No hay servicios disponibles en el pool en este momento. ¡Buen trabajo!")
+        else:
+            for m in pool_disponible:
+                # Tarjeta contenedora con look premium e informativo
+                with st.container(border=True):
+                    col_detalles, col_ganancia = st.columns([3, 1])
+                    
+                    with col_detalles:
+                        st.markdown(f"### 🚛 {m['equipo']}")
+                        st.markdown(f"**📍 Ubicación:** {m['municipio']}")
+                        st.markdown(f"**📅 Requerido para:** {m['fecha_prog']}")
+                        st.markdown(f"**📝 Trabajo:** {m['descripcion']}")
+                    
+                    with col_ganancia:
+                        st.metric(label="Pago por Servicio", value=m["monto"])
+                        st.write("") # Espaciador
+                        
+                    # Botones de Acción de la tarjeta
+                    col_b1, col_b2, col_blank = st.columns([1, 1, 2])
+                    with col_b1:
+                        if st.button("Aceptar Trabajo ⚡", key=f"accept_{m['id']}", type="primary"):
+                            m["estado"] = "Aceptado"
                             m["tecnico"] = "Carlos Gómez"
-                            m["fecha_fin"] = "30/05/2026"
-                    st.success("¡Mantenimiento registrado con éxito!")
-                    st.rerun()
-            else:
-                st.info("Por favor, marca todos los pasos obligatorios para poder finalizar la orden.")
+                            st.success(f"¡Trabajo {m['id']} asignado a tu cuenta!")
+                            st.rerun()
+                    with col_b2:
+                        if st.button("Ver Detalles 🔍", key=f"details_{m['id']}"):
+                            st.toast(f"Detalles ampliado de la orden {m['id']}: Cliente {m['cliente']}. Requiere herramienta estándar.", icon="ℹ️")
+
+    # ---- PESTAÑA 2: ÓRDENES PROPIAS Y SEMAFORIZACIÓN ----
+    with tab_mis_ordenes:
+        st.subheader("📊 Control General de mis Órdenes")
+        
+        mis_servicios = [m for m in st.session_state.mantenimientos if m["tecnico"] == "Carlos Gómez"]
+        
+        if not mis_servicios:
+            st.info("Aún no tienes órdenes asignadas o completadas. Ve a la pestaña de 'Disponibles'.")
+        else:
+            for m in mis_servicios:
+                with st.container(border=True):
+                    c_main, c_semaforo = st.columns([3, 1])
+                    
+                    with c_main:
+                        st.markdown(f"### 📦 Orden #{m['id']} - {m['equipo']}")
+                        st.markdown(f"**Cliente:** {m['cliente']}")
+                        st.markdown(f"**Fecha programada de entrega:** {m['fecha_prog']}")
+                        if m["estado"] == "Completado":
+                            st.markdown(f"✅ *Finalizado el:* {m['fecha_fin']}")
+                    
+                    with c_semaforo:
+                        # Semaforización visual basada en el estatus
+                        if m["estado"] == "Completado":
+                            st.success("✅ COMPLETADO")
+                        else:
+                            if "Retrasado" in m["semaforo"]:
+                                st.error(m["semaforo"])
+                            elif "Próximo" in m["semaforo"]:
+                                st.warning(m["semaforo"])
+                            else:
+                                st.info(m["semaforo"])
+                    
+                    # Si está aceptado, el técnico puede ejecutar los pasos y terminarlo
+                    if m["estado"] == "Aceptado":
+                        st.markdown("---")
+                        st.markdown("**📋 Check-list de Ejecución:**")
+                        p1 = st.checkbox("Inspección visual y Check-list inicial.", key=f"p1_{m['id']}")
+                        p2 = st.checkbox("Limpieza de filtros y fluidos.", key=f"p2_{m['id']}")
+                        p3 = st.checkbox("Prueba de presión y arranque.", key=f"p3_{m['id']}")
+                        
+                        if p1 and p2 and p3:
+                            if st.button("Finalizar y Entregar Unidad 🏁", type="primary", key=f"fin_{m['id']}"):
+                                m["estado"] = "Completado"
+                                m["fecha_fin"] = "30/05/2026"
+                                m["semaforo"] = "✅ Finalizado"
+                                st.success("¡Orden completada con éxito!")
+                                st.rerun()
 
 # ================= ROL: ADMINISTRADOR =================
 elif rol == "Administrador":
