@@ -102,4 +102,31 @@ elif rol == "Técnico":
             paso3 = st.checkbox("3. Pruebas de presión del sistema y arranque de control.")
             
             if paso1 and paso2 and paso3:
-                if st.button
+                if st.button("Marcar como Completado ✅", type="primary"):
+                    for m in st.session_state.mantenimientos:
+                        if m["id"] == m_seleccionado["id"]:
+                            m["estado"] = "Completado"
+                            m["tecnico"] = "Carlos Gómez"
+                    st.success("¡Mantenimiento registrado con éxito en el historial!")
+                    st.rerun()
+            else:
+                st.info("Por favor, marca todos los pasos obligatorios para poder finalizar la orden de servicio.")
+
+# ================= ROL: ADMINISTRADOR =================
+elif rol == "Administrador":
+    st.header("Panel de Administración")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        with st.container(border=True):
+            st.markdown("### 👥 Clientes Activos")
+            st.write("• CARECO\n\n• INDHECA")
+        
+    with col2:
+        with st.container(border=True):
+            st.markdown("### 🔧 Técnicos Asignados")
+            st.write("• Carlos Gómez (En ruta)\n\n• Juan Pérez (Disponible)")
+        
+    st.subheader("📊 Monitoreo Global de Servicios")
+    st.dataframe(st.session_state.mantenimientos, use_container_width=True, hide_index=True)
