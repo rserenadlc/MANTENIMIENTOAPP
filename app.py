@@ -7,7 +7,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- BASE DE DATOS EN MEMORIA (CON TUS 10 PRIMEROS EQUIPOS REALES) ---
+# --- BASE DE DATOS EN MEMORIA (10 EQUIPOS REALES DEL EXCEL) ---
 if "equipos_reales" not in st.session_state:
     st.session_state.equipos_reales = [
         {"eco": "A-TC-K-02", "marca": "KENWORTH", "modelo": "T600/T600 B/T660", "ano": 2009, "status": "activo"},
@@ -20,6 +20,16 @@ if "equipos_reales" not in st.session_state:
         {"eco": "A-TC-K-13", "marca": "KENWORTH", "modelo": "T800 B", "ano": 2011, "status": "activo"},
         {"eco": "A-TC-K-15", "marca": "KENWORTH", "modelo": "t 800 b", "ano": 2023, "status": "PENDIENTE"},
         {"eco": "a-tc-k-40", "marca": "KENWORTH", "modelo": "t680", "ano": 2025, "status": "activo"},
+    ]
+
+# --- TABLA DE SEGUIMIENTO SIMULADA (MÉTRICAS DE KILOMETRAJE Y MOTOR) ---
+if "seguimiento_kilometraje" not in st.session_state:
+    st.session_state.seguimiento_kilometraje = [
+        {"Económico": "A-TC-K-02", "KM Actual": "320,500 km", "Último Servicio": "310,000 km", "Sig. Servicio": "325,000 km", "Estatus": "OK", "Condición": "En Rango"},
+        {"Económico": "A-TC-K-35", "KM Actual": "45,200 km", "Último Servicio": "30,000 km", "Sig. Servicio": "45,000 km", "Estatus": "⚠️ REVISIÓN", "Condición": "⚠️ KILOMETRAJE CUMPLIDO"},
+        {"Económico": "A-TC-M-32", "KM Actual": "12,800 km", "Último Servicio": "0 km", "Sig. Servicio": "15,000 km", "Estatus": "OK", "Condición": "En Rango"},
+        {"Económico": "TC-17", "KM Actual": "512,100 km", "Último Servicio": "500,000 km", "Sig. Servicio": "510,000 km", "Estatus": "🚨 ALERTA", "Condición": "🚨 EXCEDIDO"},
+        {"Económico": "A-TC-K-14", "KM Actual": "189,400 km", "Último Servicio": "180,000 km", "Sig. Servicio": "195,000 km", "Estatus": "OK", "Condición": "En Rango"},
     ]
 
 if "mantenimientos" not in st.session_state:
@@ -39,37 +49,52 @@ st.divider()
 if rol == "Cliente":
     st.header("Bienvenido, Cliente (INDHECA / CARECO)")
     
-    tab1, tab2 = st.tabs(["Mis Equipos y Solicitar", "Historial de Mantenimientos"])
+    # Separación exacta en las 3 pestañas solicitadas
+    tab1, tab2, tab3 = st.tabs(["📋 Mis Equipos Activos", "📊 Seguimiento de Servicios", "⏳ Historial de Mantenimientos"])
     
     with tab1:
-        st.subheader("Mis Equipos Activos (Primeros 10 del Control)")
-        
-        # Mostramos los 10 equipos reales en una tabla estética dentro del contenedor
+        st.subheader("Flota de Maquinaria Disponible")
         with st.container(border=True):
-            st.markdown("### 📋 Flota de Maquinaria Disponible")
-            # Convertimos la lista de equipos en una tabla visual limpia
             st.dataframe(st.session_state.equipos_reales, use_container_width=True, hide_index=True)
         
-        st.subheader("Solicitar Nuevo Mantenimiento")
-        
-        # El selector ahora se llena dinámicamente con los números económicos reales del Excel
-        lista_opciones_equipos = [f"{e['marca']} {e['modelo']} (Eco: {e['eco']})" for e in st.session_state.equipos_reales]
-        equipo_sel = st.selectbox("Selecciona el equipo que requiere servicio:", lista_opciones_equipos)
-        
-        detalles = st.text_area("Describe la falla, kilometraje o tipo de servicio requerido:")
-        
-        if st.button("Enviar Solicitud", type="primary"):
-            st.session_state.mantenimientos.append({
-                "id": len(st.session_state.mantenimientos) + 1,
-                "cliente": "INDHECA / CARECO",
-                "equipo": equipo_sel,
-                "estado": "Pendiente",
-                "tecnico": "Ninguno"
-            })
-            st.success(f"¡Solicitud para el equipo {equipo_sel} enviada con éxito!")
-
     with tab2:
-        st.subheader("Estado de mis Servicios")
+        st.subheader("Monitoreo Dinámico de Desgaste y Kilometraje")
+        st.caption("Esta tabla identifica automáticamente qué equipos requieren mantenimiento preventivo basándose en sus alertas de kilometraje.")
+        
+        # Tabla de control de kilometraje simulada
+        with st.container(border=True):
+            st.dataframe(st.session_state.seguimiento_kilometraje, use_container_width=True, hide_index=True)
+            
+        st.markdown("---")
+        
+        # Recuadro inferior exclusivo para solicitar el mantenimiento
+        with st.container(border=True):
+            st.subheader("🛠️ Solicitar Mantenimiento Preventivo / Correctivo")
+            st.info("Utilice este apartado prioritariamente para las unidades marcadas con estatus de ⚠️ REVISIÓN o 🚨 ALERTA por kilometraje de servicio cumplido.")
+            
+            lista_opciones_equipos = [f"{e['marca']} {e['modelo']} (Eco: {e['eco']})" for e in st.session_state.equipos_reales]
+            equipo_sel = st.selectbox("Seleccione la unidad que ingresará a taller:", lista_opciones_equipos)
+            
+            col_km, col_tipo = st.columns(2)
+            with col_km:
+                km_reportado = st.text_input("Kilometraje actual de la unidad:", placeholder="Ej. 45,200 km")
+            with col_tipo:
+                tipo_maint = st.selectbox("Tipo de Servicio:", ["Preventivo (Cambio de filtros/fluidos)", "Correctivo (Falla reportada)", "Inspección General"])
+                
+            detalles = st.text_area("Observaciones o síntomas reportados por el operador:")
+            
+            if st.button("Enviar Orden de Servicio", type="primary"):
+                st.session_state.mantenimientos.append({
+                    "id": len(st.session_state.mantenimientos) + 1,
+                    "cliente": "INDHECA / CARECO",
+                    "equipo": equipo_sel,
+                    "estado": "Pendiente",
+                    "tecnico": "Ninguno"
+                })
+                st.success(f"¡Solicitud de servicio creada con éxito para la unidad {equipo_sel}! El departamento técnico ha sido notificado.")
+
+    with tab3:
+        st.subheader("Historial General y Estatus de Órdenes")
         for m in st.session_state.mantenimientos:
             status_color = "🔴" if m["estado"] == "Pendiente" else "🟢"
             st.write(f"{status_color} **{m['equipo']}** - Estado: *{m['estado']}* (Técnico: {m['tecnico']})")
@@ -125,8 +150,3 @@ elif rol == "Administrador":
         
     with col2:
         with st.container(border=True):
-            st.markdown("### 🔧 Técnicos Asignados")
-            st.write("• Carlos Gómez (En ruta)\n\n• Juan Pérez (Disponible)")
-        
-    st.subheader("📊 Monitoreo Global de Servicios")
-    st.dataframe(st.session_state.mantenimientos, use_container_width=True, hide_index=True)
