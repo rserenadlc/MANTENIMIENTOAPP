@@ -7,58 +7,56 @@ st.set_page_config(
     layout="centered"
 )
 
-# Inyección de CSS personalizado para lograr el look exacto de Ferrari
-st.markdown("""
-    <style>
-    /* Fondo de la aplicación en blanco */
+# Definimos el CSS de forma aislada para evitar conflictos con las llaves de Python
+estilos_css = """
+<style>
+    /* Forzar fondo blanco en la app */
     .stApp {
-        background-color: #FFFFFF;
-        color: #111111;
+        background-color: #FFFFFF !important;
+        color: #111111 !important;
     }
     
-    /* Títulos principales en negro Ferrari */
-    h1, h2, h3, p, span {
+    /* Títulos principales en negro */
+    h1, h2, h3, p, span, li {
         color: #111111 !important;
     }
     
     /* Paneles o contenedores simulados con fondo negro y texto blanco */
     .ferrari-card {
-        background-color: #111111;
-        padding: 20px;
-        border-radius: 8px;
-        color: #FFFFFF !important;
-        margin-bottom: 15px;
+        background-color: #111111 !important;
+        padding: 20px !important;
+        border-radius: 8px !important;
+        margin-bottom: 15px !important;
     }
-    .ferrari-card p, .ferrari-card h3, .ferrari-card li {
+    
+    .ferrari-card h3, .ferrari-card p, .ferrari-card li, .ferrari-card strong {
         color: #FFFFFF !important;
     }
     
     /* Botón Primario: Rojo Ferrari con letras blancas */
-    div.stButton > button:first-child {
+    div.stButton > button {
         background-color: #E81C23 !important;
         color: #FFFFFF !important;
         border: none !important;
         font-weight: bold !important;
         border-radius: 4px !important;
-        transition: background-color 0.3s ease;
     }
     
-    /* Efecto al pasar el mouse sobre el botón */
-    div.stButton > button:first-child:hover {
+    /* Efecto Hover del botón */
+    div.stButton > button:hover {
         background-color: #B81419 !important;
         color: #FFFFFF !important;
     }
     
-    /* Ajustes para los Tabs (pestañas) */
-    button[data-baseweb="tab"] {
+    /* Ajustes para las pestañas (Tabs) */
+    button[data-baseweb="tab"] p {
         color: #111111 !important;
     }
-    button[aria-selected="true"] {
-        color: #E81C23 !important;
-        border-bottom-color: #E81C23 !important;
-    }
-    </style>
-""", unsafe_html=True)
+</style>
+"""
+
+# Inyectamos los estilos de manera segura
+st.markdown(estilos_css, unsafe_html=True)
 
 
 # --- SIMULACIÓN DE BASE DE DATOS EN MEMORIA ---
@@ -68,8 +66,7 @@ if "mantenimientos" not in st.session_state:
         {"id": 2, "cliente": "Empresa Alfa", "equipo": "Generador Cummins 150kVA", "estado": "Completado", "tecnico": "Carlos Gómez"},
     ]
 
-# --- ENCABEZADO CON IMAGEN/ICONO ---
-# Nota: Puedes cambiar este emoji grande por una URL de imagen real usando st.image("URL") si lo deseas.
+# --- ENCABEZADO ---
 st.markdown("<h1 style='text-align: center; color: #E81C23 !important;'>🏎️ Portal de Servicios</h1>", unsafe_html=True)
 
 rol = st.selectbox("Selecciona tu perfil para la demo:", ["Cliente", "Técnico", "Administrador"])
@@ -85,7 +82,6 @@ if rol == "Cliente":
     with tab1:
         st.subheader("Mis Equipos Activos")
         
-        # Usamos el contenedor negro "estilo Ferrari" para los equipos
         st.markdown("""
         <div class="ferrari-card">
             <h3>Equipos en Operación</h3>
@@ -134,9 +130,8 @@ elif rol == "Técnico":
         )
         
         if m_seleccionado:
-            # Alerta visual usando el panel negro
             st.markdown(f"""
-            <div class="ferrari-card" style="border-left: 5px solid #E81C23;">
+            <div class="ferrari-card">
                 <h3>⚠️ Orden Activa</h3>
                 <p>Trabajando en: <strong>{m_seleccionado['equipo']}</strong> para el cliente <strong>{m_seleccionado['cliente']}</strong></p>
             </div>
