@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -147,7 +148,6 @@ if rol == "Cliente":
             detalles = st.text_area("Observaciones o síntomas reportados por el operador:")
             
             if st.button("Enviar Orden de Servicio", type="primary", key="btn_solicitar"):
-                # SOLUCIÓN: Agregamos llave 'semaforo' por defecto para evitar el KeyError
                 st.session_state.mantenimientos.append({
                     "id": len(st.session_state.mantenimientos) + 1,
                     "cliente": "INDHECA / CARECO",
@@ -188,10 +188,8 @@ elif rol == "Técnico":
     
     tab_disponibles, tab_mis_ordenes = st.tabs(["📌 Mantenimientos Disponibles", "📋 Mis Órdenes de Trabajo"])
     
-    # ---- PESTAÑA 1: INTERFAZ ESTILO UBER/RAPPI ----
     with tab_disponibles:
         st.subheader("⚡ Solicitudes en tu Zona (Boca del Río / Veracruz)")
-        st.caption("Toma un servicio de la lista para asignártelo de inmediato.")
         
         pool_disponible = [m for m in st.session_state.mantenimientos if m["estado"] == "Disponible"]
         
@@ -217,20 +215,19 @@ elif rol == "Técnico":
                         if st.button("Aceptar Trabajo ⚡", key=f"accept_{m['id']}", type="primary"):
                             m["estado"] = "Aceptado"
                             m["tecnico"] = "Carlos Gómez"
-                            st.success(f"¡Trabajo {m['id']} asignado a tu cuenta!")
+                            st.success(f"¡Trabajo {m['id']} asignado!")
                             st.rerun()
                     with col_b2:
                         if st.button("Ver Detalles 🔍", key=f"details_{m['id']}"):
-                            st.toast(f"Detalles ampliado de la orden {m['id']}: Cliente {m['cliente']}.", icon="ℹ️")
+                            st.toast(f"Detalles de la orden {m['id']}.", icon="ℹ️")
 
-    # ---- PESTAÑA 2: ÓRDENES PROPIAS Y SEMAFORIZACIÓN ----
     with tab_mis_ordenes:
         st.subheader("📊 Control General de mis Órdenes")
         
         mis_servicios = [m for m in st.session_state.mantenimientos if m["tecnico"] == "Carlos Gómez"]
         
         if not mis_servicios:
-            st.info("Aún no tienes órdenes asignadas o completadas. Ve a la pestaña de 'Disponibles'.")
+            st.info("Aún no tienes órdenes asignadas o completadas.")
         else:
             for m in mis_servicios:
                 with st.container(border=True):
@@ -247,7 +244,6 @@ elif rol == "Técnico":
                         if m["estado"] == "Completado":
                             st.success("✅ COMPLETADO")
                         else:
-                            # Uso seguro de .get() para evitar caídas imprevistas
                             m_semaforo = m.get("semaforo", "🟢 En tiempo")
                             if "Retrasado" in m_semaforo:
                                 st.error(m_semaforo)
@@ -259,30 +255,4 @@ elif rol == "Técnico":
                     if m["estado"] == "Aceptado":
                         st.markdown("---")
                         st.markdown("**📋 Check-list de Ejecución:**")
-                        p1 = st.checkbox("Inspección visual general y Check-list de fluidos inicial.", key=f"p1_{m['id']}")
-                        p2 = st.checkbox("Limpieza de filtros y fluidos.", key=f"p2_{m['id']}")
-                        p3 = st.checkbox("Prueba de presión y arranque.", key=f"p3_{m['id']}")
-                        
-                        if p1 and p2 and p3:
-                            if st.button("Finalizar y Entregar Unidad 🏁", type="primary", key=f"fin_{m['id']}"):
-                                m["estado"] = "Completado"
-                                m["fecha_fin"] = "30/05/2026"
-                                m["semaforo"] = "✅ Finalizado"
-                                st.success("¡Orden completada con éxito!")
-                                st.rerun()
-
-# ================= ROL: ADMINISTRADOR =================
-elif rol == "Administrador":
-    st.header("Panel de Administración")
-    col1, col2 = st.columns(2)
-    with col1:
-        with st.container(border=True):
-            st.markdown("### 👥 Clientes Activos")
-            st.write("• CARECO\n\n• INDHECA")
-    with col2:
-        with st.container(border=True):
-            st.markdown("### 🔧 Técnicos Asignados")
-            st.write("• Carlos Gómez (En ruta)\n\n• Juan Pérez (Disponible)")
-        
-    st.subheader("📊 Monitoreo Global de Servicios")
-    st.dataframe(st.session_state.mantenimientos, use_container_width=True, hide_index=True)
+                        p1 = st.checkbox("Inspección visual general y Check-list de fluidos inicial.", key=f"p1_{m
