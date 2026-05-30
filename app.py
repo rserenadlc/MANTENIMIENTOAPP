@@ -75,6 +75,47 @@ if rol == "Cliente":
         with st.container(border=True):
             st.dataframe(st.session_state.equipos_reales, use_container_width=True, hide_index=True)
         
+        # --- NUEVA SECCIÓN: BOTONES DE GESTIÓN DE UNIDADES (SIMULADOS) ---
+        col_btn1, col_btn2 = st.columns(2)
+        
+        with col_btn1:
+            with st.expander("➕ Agregar Nueva Unidad", expanded=False):
+                new_eco = st.text_input("Número Económico:", placeholder="Ej. A-TC-K-45")
+                new_marca = st.selectbox("Marca:", ["KENWORTH", "MACK", "CATERPILLAR", "CUMMINS", "OTRO"])
+                new_modelo = st.text_input("Modelo:", placeholder="Ej. T680")
+                new_ano = st.number_input("Año Modelo:", min_value=2000, max_value=2027, value=2026)
+                
+                if st.button("Guardar Unidad 💾", type="primary", key="btn_add"):
+                    if new_eco:
+                        # Añade dinámicamente el equipo a la lista en memoria
+                        st.session_state.equipos_reales.append({
+                            "eco": new_eco, "marca": new_marca, "modelo": new_modelo, "ano": int(new_ano), "status": "activo"
+                        })
+                        st.success(f"¡Unidad {new_eco} agregada correctamente a la flota!")
+                        st.rerun()
+                    else:
+                        st.error("Por favor ingresa el Número Económico.")
+
+        with col_btn2:
+            with st.expander("📝 Editar Unidad Existente", expanded=False):
+                # Selector para elegir cuál de los 10 equipos se va a editar
+                lista_ecos = [e["eco"] for e in st.session_state.equipos_reales]
+                eco_a_editar = st.selectbox("Selecciona el Económico a modificar:", lista_ecos)
+                
+                # Buscar datos actuales para poblar los campos simulados
+                datos_actuales = next((item for item in st.session_state.equipos_reales if item["eco"] == eco_a_editar), None)
+                
+                edit_modelo = st.text_input("Modificar Modelo:", value=datos_actuales["modelo"] if datos_actuales else "")
+                edit_status = st.selectbox("Modificar Estatus:", ["activo", "en taller", "baja"], index=0)
+                
+                if st.button("Actualizar Cambios 🔄", key="btn_edit"):
+                    for e in st.session_state.equipos_reales:
+                        if e["eco"] == eco_a_editar:
+                            e["modelo"] = edit_modelo
+                            e["status"] = edit_status
+                    st.success(f"¡Unidad {eco_a_editar} actualizada con éxito para la demo!")
+                    st.rerun()
+        
     with tab2:
         st.subheader("Monitoreo Dinámico de Desgaste y Kilometraje")
         with st.container(border=True):
@@ -96,8 +137,7 @@ if rol == "Cliente":
                 
             detalles = st.text_area("Observaciones o síntomas reportados por el operador:")
             
-            if st.button("Enviar Orden de Servicio", type="primary"):
-                # Insertamos la fecha de hoy simulada para la programación
+            if st.button("Enviar Orden de Servicio", type="primary", key="btn_solicitar"):
                 st.session_state.mantenimientos.append({
                     "id": len(st.session_state.mantenimientos) + 1,
                     "cliente": "INDHECA / CARECO",
@@ -105,32 +145,26 @@ if rol == "Cliente":
                     "estado": "Pendiente",
                     "tecnico": "Ninguno",
                     "descripcion": f"[{tipo_maint}] Km reportado: {km_reportado}. Observaciones: {detalles}",
-                    "fecha_prog": "30/05/2026", # Fecha actual simulada
+                    "fecha_prog": "30/05/2026",
                     "fecha_fin": "-"
                 })
                 st.success(f"¡Solicitud de servicio creada con éxito!")
 
     with tab3:
         st.subheader("Historial y Estatus Detallado de Órdenes")
-        
-        # Desplegamos cada mantenimiento de forma estética en su propia tarjeta
         for m in st.session_state.mantenimientos:
             with st.container(border=True):
                 col_info, col_status = st.columns([3, 1])
-                
                 with col_info:
                     st.markdown(f"### 🚛 {m['equipo']}")
                     st.markdown(f"**Descripción:** {m['descripcion']}")
                     st.markdown(f"👤 **Técnico Asignado:** {m['tecnico']}")
-                    
-                    # Lógica de fechas según el estado
                     if m["estado"] == "Completado":
                         st.markdown(f"📅 **Fecha de Finalización:** {m['fecha_fin']}")
                     else:
                         st.markdown(f"📅 **Fecha Programada:** {m['fecha_prog']}")
-                
                 with col_status:
-                    st.write("") # Espaciador visual
+                    st.write("")
                     if m["estado"] == "Pendiente":
                         st.error("🔴 PENDIENTE")
                     else:
@@ -139,7 +173,6 @@ if rol == "Cliente":
 # ================= ROL: TÉCNICO =================
 elif rol == "Técnico":
     st.header("Panel del Técnico: Carlos Gómez")
-    
     pendientes = [m for m in st.session_state.mantenimientos if m["estado"] == "Pendiente"]
     
     if not pendientes:
@@ -164,12 +197,12 @@ elif rol == "Técnico":
             paso3 = st.checkbox("3. Pruebas de presión del sistema y arranque de control.")
             
             if paso1 and paso2 and paso3:
-                if st.button("Marcar como Completado ✅", type="primary"):
+                if st.button("Marcar como Completado ✅", type="primary", key="btn_tech_complete"):
                     for m in st.session_state.mantenimientos:
                         if m["id"] == m_seleccionado["id"]:
                             m["estado"] = "Completado"
                             m["tecnico"] = "Carlos Gómez"
-                            m["fecha_fin"] = "30/05/2026" # Sella la fecha de hoy al finalizar
+                            m["fecha_fin"] = "30/05/2026"
                     st.success("¡Mantenimiento registrado con éxito!")
                     st.rerun()
             else:
@@ -178,14 +211,11 @@ elif rol == "Técnico":
 # ================= ROL: ADMINISTRADOR =================
 elif rol == "Administrador":
     st.header("Panel de Administración")
-    
     col1, col2 = st.columns(2)
-    
     with col1:
         with st.container(border=True):
             st.markdown("### 👥 Clientes Activos")
             st.write("• CARECO\n\n• INDHECA")
-        
     with col2:
         with st.container(border=True):
             st.markdown("### 🔧 Técnicos Asignados")
