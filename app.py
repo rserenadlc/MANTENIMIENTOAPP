@@ -255,4 +255,39 @@ elif rol == "Técnico":
                     if m["estado"] == "Aceptado":
                         st.markdown("---")
                         st.markdown("**📋 Check-list de Ejecución:**")
-                        p1 = st.checkbox("Inspección visual general y Check-list de fluidos inicial.", key=f"p1_{m
+                        p1 = st.checkbox("Inspección visual general y Check-list de fluidos inicial.", key=f"p1_{m['id']}")
+                        p2 = st.checkbox("Limpieza de filtros y fluidos.", key=f"p2_{m['id']}")
+                        p3 = st.checkbox("Prueba de presión y arranque.", key=f"p3_{m['id']}")
+                        
+                        if p1 and p2 and p3:
+                            if st.button("Finalizar y Entregar Unidad 🏁", type="primary", key=f"fin_{m['id']}"):
+                                m["estado"] = "Completado"
+                                m["fecha_fin"] = "30/05/2026"
+                                m["semaforo"] = "✅ Finalizado"
+                                st.success("¡Orden completada!")
+                                st.rerun()
+
+# ================= ROL: ADMINISTRADOR =================
+elif rol == "Administrador":
+    st.header("Panel de Administración")
+    col1, col2 = st.columns(2)
+    with col1:
+        with st.container(border=True):
+            st.markdown("### 👥 Clientes Activos")
+            st.write("• CARECO\n\n• INDHECA")
+    with col2:
+        with st.container(border=True):
+            st.markdown("### 🔧 Técnicos Asignados")
+            st.write("• Carlos Gómez (En ruta)\n\n• Juan Pérez (Disponible)")
+        
+    st.subheader("📊 Monitoreo Global de Servicios")
+    
+    # SOLUCIÓN DEFINITIVA: Convertimos a DataFrame seguro rellenando vacíos si existen registros viejos
+    df_mantenimientos = pd.DataFrame(st.session_state.mantenimientos)
+    if not df_mantenimientos.empty:
+        if "semaforo" not in df_mantenimientos.columns:
+            df_mantenimientos["semaforo"] = "🟢 En tiempo"
+        else:
+            df_mantenimientos["semaforo"] = df_mantenimientos["semaforo"].fillna("🟢 En tiempo")
+            
+    st.dataframe(df_mantenimientos, use_container_width=True, hide_index=True)
