@@ -150,3 +150,9 @@ elif rol == "Administrador":
         
     with col2:
         with st.container(border=True):
+            with st.container(border=True):
+            st.markdown("### 🔧 Técnicos Asignados")
+            st.write("• Carlos Gómez (En ruta)\n\n• Juan Pérez (Disponible)")
+        
+    st.subheader("📊 Monitoreo Global de Servicios")
+    st.dataframe(st.session_state.mantenimientos, use_container_width=True, hide_index=True)
